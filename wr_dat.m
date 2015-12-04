@@ -1,4 +1,4 @@
-f1 = fopen('foo.dat', 'w');
+f1 = fopen('send.dat', 'w');
 
 x_real = ones(1e6, 1)*0.7;
 x_imag = zeros(1e6,1);
