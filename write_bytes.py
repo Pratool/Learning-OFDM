@@ -1,6 +1,10 @@
-def wr_dat(in_str, out_file_path):
+import numpy as np
+
+def wr_dat(in_dat_list, out_file_path):
     out_file = open(out_file_path, 'wb')
-    out_file.write(bytes(in_str)).encode('ascii')
+    out_file.write(bytes(in_dat_list))
+    out_file.close()
 
 if __name__ == "__main__":
-    wr_dat('hi, my name is pratool', 'send.dat')
+    data = np.zeros(10000)
+    wr_dat(data, 'send.dat')
