@@ -20,5 +20,8 @@ def write_floats(filename, tx_data):
     return data
 
 if __name__ == '__main__':
-    test_data = (np.arange(6), np.zeros(6))
+    num_samp = 1e6
+    x_real = np.zeros(num_samp)+0.7
+    x_imag = np.zeros(num_samp)
+    test_data = (x_real, x_imag)
     write_floats('tx_samp.dat', test_data)
