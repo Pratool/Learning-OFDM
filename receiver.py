@@ -20,9 +20,23 @@ def read_floats(filename):
 def plot_rx(data):
     real = data[0]
     imag = data[1]
-    plt.plot(data[0])
+    Y = (data[0]+data[1]*1j)
+    fft_Y = np.fft.fft(((Y)**2))
+    x = np.arange(len(fft_Y))
+    freq_bins = 0.25e6*x/(len(x))
+    # plt.plot(freq_bins, abs(fft_Y))
+    """ FINDS MAXIMUM OF FFT TO GET 2*f_delta """
+    location = np.where((abs(fft_Y)[0:len(freq_bins)/2])==(abs(fft_Y)[0:len(freq_bins)/2]).max())
+    print freq_bins[location]
+
+    """ USING MAX: PLOT THE DEMODULATED GRAPH """
+    two_f_delta = freq_bins[location]
+    demod = Y*np.exp(-1j*np.pi*two_f_delta*np.arange(len(Y)))
+    plt.plot(abs(demod))
+
+
     plt.show()
 
 if __name__ == '__main__':
-    rx = read_floats('receiver.dat')
+    rx = read_floats('received.dat')
     plot_rx(rx)
