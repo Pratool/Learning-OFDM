@@ -24,5 +24,5 @@ def plot_rx(data):
     plt.show()
 
 if __name__ == '__main__':
-    rx = read_floats('tx_samp.dat')
+    rx = read_floats('receiver.dat')
     plot_rx(rx)
