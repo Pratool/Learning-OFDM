@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+SAMPLE_RATE = 0.25e6
+
 def read_floats(filename):
     """
     Reads binary file as Float32 data until end of file
@@ -16,6 +18,53 @@ def read_floats(filename):
     imag = data[1::2]
 
     return (real, imag)
+
+def plot_rx_t(data):
+    """
+    Plots received data file in the time domain
+
+    INPUT
+    data:   tuple with first value as numpy array of real part of data
+            and second value as numpy array of imaginary part of data
+    """
+    real = data[0]
+    imag = data[1]
+    time = np.arange(len(real)) * (1/SAMPLE_RATE)
+    plt.plot(time, real)
+    plt.show()
+
+def fft_rx(data):
+    """
+    Returns the FFT of data with frequency bins in output
+
+    INPUT
+    data:   tuple with first value as numpy array of real part of data
+            and second value as numpy array of imaginary part of data
+
+    OUTPUT
+    fft_data:   tuple with first value as numpy array of frequency bins
+                and second value as numpy array of complex64 type
+    """
+    real = data[0]
+    imag = data[1]
+    z = data[0] + data[1]*1j
+
+    z_fft = np.fft.fft(z)
+    freq = SAMPLE_RATE*np.arange(len(z_fft)) / len(z_fft)
+    fft_data = (freq, z)
+    return fft_data
+
+def plot_rx_f(data):
+    """
+    Plots received data in the frequency domain
+
+    INPUT
+    data:   tuple with first value as numpy array of real part of data
+            and second value as numpy array of imaginary part of data
+    """
+    freq, z_fft = fft_rx(data)
+    plt.plot(freq, z_fft)
+    plt.show()
 
 def plot_rx(data):
     real = data[0]
@@ -39,4 +88,6 @@ def plot_rx(data):
 
 if __name__ == '__main__':
     rx = read_floats('received.dat')
-    plot_rx(rx)
+    #plot_rx(rx)
+    #plot_rx_t(rx)
+    plot_rx_f(rx)
