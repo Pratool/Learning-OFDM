@@ -11,8 +11,10 @@ def read_floats(filename):
     filename:   string path of the output file to be written
 
     OUTPUT
+    time:       numpy array of the time at which the signal's "voltage" was
+                recorded
     data_z:     numpy array of data type complex64 (float32 imaginary and
-                float32 real)
+                float32 real), the signal "voltage"
     """
     # reads binary file as float32 until end of file
     data = np.fromfile(filename, dtype=np.float32, count=-1)
@@ -21,7 +23,11 @@ def read_floats(filename):
     real = data[0::2]
     imag = data[1::2]
     data_z = real + imag*1j
-    return data_z
+
+    # recovers time info
+    time = np.arange(len(data_z))/SAMPLE_RATE
+
+    return (time, data_z)
 
 def plot_rx_t(data_z):
     """
@@ -55,30 +61,44 @@ def fft_rx(data_z):
 
 def plot_rx_f(data_z):
     """
-    Plots received data in the frequency domain
+    Computes FFT of received data and plots in frequency domain
 
     INPUT
-    data:   tuple with first value as numpy array of real part of data
-            and second value as numpy array of imaginary part of data
+    data_z:     numpy array of data type complex64 (float32 imaginary and
+                float32 real) in the time domain
     """
     freq, z_fft = fft_rx(data_z)
     plt.plot(freq, z_fft)
     plt.show()
 
 def sync_freq_defs(data_z):
+    """
+    Synchronizes the received data by compensating for offset between
+    transmitter frequency and receiver frequency
+
+    INPUT
+    data_z:     numpy array of data type complex64 (float32 imaginary and
+                float32 real) with unsynchronized time data
+
+    OUTPUT:
+    synced_z:   numpy array of data type complex64 (float32 imaginary and
+                float32 real) with frequency synchronized time data
+    """
     z = data_z
     freqs, z_sq_fft = fft_rx(z**2)
 
-    # Finds maximum of FFT to get 2*f_delta
+    # Finds frequency corresponding to maximum of FFT(input^2) to get 2*f_delta
     two_f_delta = freqs[np.where((abs(z_sq_fft)[0:len(freqs)/2])==(abs(z_sq_fft)[0:len(freqs)/2]).max())]
 
-    # demodulate original signal by complex number phase shift
-    demod = z*np.exp(-1j*np.pi*two_f_delta*np.arange(len(z)))
+    # demodulate original signal by multiplying complex number for phase shift
+    synced_z = z*np.exp(-1j*np.pi*two_f_delta*np.arange(len(z)))
 
-    # plot frequency-synchronized signal
-    plt.plot(abs(demod))
-    plt.show()
+    return synced_z
 
 if __name__ == '__main__':
-    rx = read_floats('received.dat')
-    sync_freq_defs(rx)
+    t, rx = read_floats('received.dat')
+    synced_rx = sync_freq_defs(rx)
+    # plot frequency-synchronized signal
+    # spliced first 100 entries so it was easier to see graph
+    plt.plot(t[100:], abs(rx[100:]))
+    plt.show()
