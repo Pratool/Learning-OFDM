@@ -1,4 +1,5 @@
 import numpy as np
+import matplotlib.pyplot as plt
 
 def write_floats(filename, tx_data):
     """
@@ -21,8 +22,12 @@ def write_floats(filename, tx_data):
 
 if __name__ == '__main__':
     num_samp = 1e6
-    #x_real = np.sin(np.arange(num_samp))
-    x_real = np.zeros(num_samp)+0.7
+    #x_real = 0.7*np.sin(np.arange(num_samp))
+    #x_real = np.zeros(num_samp)+0.7
+    x_real = np.hstack((np.zeros(num_samp/4), np.ones(num_samp/4)))*0.7
+    x_real = np.hstack((x_real, x_real))
+    plt.plot(x_real)
+    plt.show()
     x_imag = np.zeros(num_samp)
     test_data = (x_real, x_imag)
     write_floats('sent.dat', test_data)
