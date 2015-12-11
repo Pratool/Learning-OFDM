@@ -87,18 +87,29 @@ def sync_freq_defs(data_z):
     z = data_z
     freqs, z_sq_fft = fft_rx(z**2)
 
-    # Finds frequency corresponding to maximum of FFT(input^2) to get 2*f_delta
-    two_f_delta = freqs[np.where((abs(z_sq_fft)[0:len(freqs)/2])==(abs(z_sq_fft)[0:len(freqs)/2]).max())]
+    # recovers time info
+    time = np.arange(len(data_z))/SAMPLE_RATE
 
+    # Finds frequency corresponding to maximum of FFT(input^2) to get 2*f_delta
+    abs_z_sq_fft = (abs(z_sq_fft)[0:len(freqs)])
+    two_f_delta = freqs[np.where(abs_z_sq_fft==abs_z_sq_fft.max())]
+
+    print two_f_delta
     # demodulate original signal by multiplying complex number for phase shift
-    synced_z = z*np.exp(-1j*np.pi*two_f_delta*np.arange(len(z)))
+    synced_z = z*np.exp(-1j*np.pi*two_f_delta*np.arange(len(time)))
 
     return synced_z
 
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
-    synced_rx = sync_freq_defs(rx)
+    start = 2e-4 + 1.049
+    start = start * SAMPLE_RATE
+
+    end = 0.0017 + 1.049
+    end = end * SAMPLE_RATE
+
+    synced_rx = sync_freq_defs(rx[start:end])
     # plot frequency-synchronized signal
     # spliced first 100 entries so it was easier to see graph
-    plt.plot(t[100:], abs(rx[100:]))
+    plt.plot(t[start:end], synced_rx.real)
     plt.show()
