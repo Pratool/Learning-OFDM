@@ -71,6 +71,27 @@ def plot_rx_f(data_z):
     plt.plot(freq, z_fft)
     plt.show()
 
+def splice_digital_sig(time, rx_sig):
+    """
+    Returns the part of the signal where there are actually bits (not just
+    white noise from waiting)
+    """
+    # ignoring impulse defect at beginning of time series
+    t = time[100:]
+    rx = rx_sig[100:]
+
+    # normalizing signal
+    rx = rx / rx.max()
+
+    # truncate everything outside of signal
+    ediff = np.ediff1d(abs(rx))
+    sig_end = np.where(ediff < -0.2)[0][-1]+5
+    sig_beg = np.where(ediff < -0.2)[0][0]+5
+    rx = rx[sig_beg:sig_end]
+    t = t[sig_beg:sig_end]
+
+    return (t, rx)
+
 def sync_freq_defs(data_z):
     """
     Synchronizes the received data by compensating for offset between
@@ -102,14 +123,8 @@ def sync_freq_defs(data_z):
 
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
-    start = 2e-4 + 1.049
-    start = start * SAMPLE_RATE
-
-    end = 0.0017 + 1.049
-    end = end * SAMPLE_RATE
-
-    synced_rx = sync_freq_defs(rx[start:end])
-    # plot frequency-synchronized signal
-    # spliced first 100 entries so it was easier to see graph
-    plt.plot(t[start:end], synced_rx.real)
+    t, rx = splice_digital_sig(t, rx)
+    synced_rx = sync_freq_defs(rx)
+    plt.plot(t, abs(synced_rx))
+    #plt.plot(t, np.angle(rx, deg=True))
     plt.show()

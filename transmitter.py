@@ -1,6 +1,8 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+SAMPLE_RATE = 0.25e6
+
 def write_floats(filename, tx_data):
     """
     Writes a binary file with type Float32 with input data
@@ -21,13 +23,17 @@ def write_floats(filename, tx_data):
     return data
 
 if __name__ == '__main__':
-    num_samp = 1e6
-    #x_real = 0.7*np.sin(np.arange(num_samp))
-    #x_real = np.zeros(num_samp)+0.7
-    x_real = np.hstack((np.zeros(num_samp/4), np.ones(num_samp/4)))*0.7
-    x_real = np.hstack((x_real, x_real))
+    time = 2
+    num_bits = 8
+    zero_pad = 1e5
+    num_samp = int(time*SAMPLE_RATE)
+    tot_samp = num_samp + zero_pad
+    # numpy array containing [0, 1] repeated num_bits/2 times
+    x_real = 0.7*np.array( [np.floor(i/(num_samp/num_bits))%2 for i in range(num_samp)] )
+    # pad with zeros
+    x_real = np.hstack((np.zeros(zero_pad/2), x_real, np.zeros(zero_pad/2)))
     plt.plot(x_real)
     plt.show()
-    x_imag = np.zeros(num_samp)
+    x_imag = np.zeros(tot_samp)
     test_data = (x_real, x_imag)
     write_floats('sent.dat', test_data)
