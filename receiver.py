@@ -83,10 +83,30 @@ def splice_digital_sig(time, rx_sig):
     # normalizing signal
     rx = rx / rx.max()
 
+    plt.plot(t, abs(rx))
+    plt.show()
+
+    avg_noise = np.max(abs(rx[:100]))+0.5
+    thres = 1-avg_noise
+    thres = 0.3
+
     # truncate everything outside of signal
-    ediff = np.ediff1d(abs(rx))
-    sig_end = np.where(ediff < -0.2)[0][-1]+5
-    sig_beg = np.where(ediff < -0.2)[0][0]+5
+    sig_beg = 0
+    sig_end = len(rx)-1
+    for i in range(len(rx)):
+        if abs(rx[i]) > 0.5:
+            sig_beg = i
+            break
+    #print range(len(rx), 0, -1)
+    for i in range(len(rx)-1, 0, -1):
+        if abs(rx[i]) > 0.4:
+            print i
+            sig_end = i
+            break
+    #ediff = np.ediff1d(abs(rx))
+    #print max(ediff)
+    #sig_end = np.where(ediff < -thres)[0][-1]+5
+    #sig_beg = np.where(ediff < -thres)[0][1]+5
     rx = rx[sig_beg:sig_end]
     t = t[sig_beg:sig_end]
 
@@ -127,7 +147,7 @@ if __name__ == '__main__':
     #fft_size = 1*SAMPLE_RATE
     plt.show()
     t, rx = splice_digital_sig(t, rx)
-    synced_rx = sync_freq_defs(rx[99*fft_size:100*fft_size])
+    #synced_rx = sync_freq_defs(rx[99*fft_size:100*fft_size])
     #t = t[99*fft_size:100*fft_size]
     #plt.plot(t, rx[99*fft_size:100*fft_size].real)
     #plt.plot(t, synced_rx.real)
