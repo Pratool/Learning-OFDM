@@ -22,14 +22,24 @@ def write_floats(filename, tx_data):
 
     return data
 
+def arr_gen(input_arr, time):
+    num_samp = int(time*SAMPLE_RATE)
+    bit_len = num_samp/len(input_arr)
+    out_arr = []
+    for i in range(len(input_arr)):
+        out_arr.extend([input_arr[i]]*bit_len)
+    out_arr = 0.3*np.array(out_arr)
+    return out_arr
+
 if __name__ == '__main__':
     time = 2
-    num_bits = 8
     zero_pad = 1e5
     num_samp = int(time*SAMPLE_RATE)
+    in_arr = np.array([1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0])
+    num_bits = len(in_arr)
     tot_samp = num_samp + zero_pad
-    # numpy array containing [0, 1] repeated num_bits/2 times
-    x_real = 0.7*np.array( [np.floor(i/(num_samp/num_bits))%2 for i in range(num_samp)] )
+    in_arr = in_arr*2 - 1
+    x_real = arr_gen(in_arr, time)
     # pad with zeros
     x_real = np.hstack((np.zeros(zero_pad/2), x_real, np.zeros(zero_pad/2)))
     plt.plot(x_real)
