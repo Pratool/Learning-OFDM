@@ -123,6 +123,8 @@ def sync_freq_defs(data_z):
 
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
+    plt.plot(t, rx**2)
+    plt.show()
     t, rx = splice_digital_sig(t, rx)
     synced_rx = sync_freq_defs(rx)
     plt.plot(t, abs(synced_rx))
