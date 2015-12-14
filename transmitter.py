@@ -1,7 +1,11 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# for implementing image transmission
+# import matplotlib.image as mpimg
+
 SAMPLE_RATE = 0.25e6
+BIT_LENGTH  = 50
 
 def write_floats(filename, tx_data):
     """
@@ -23,17 +27,17 @@ def write_floats(filename, tx_data):
     return data
 
 def arr_gen(input_arr):
-    bit_len = 100
     out_arr = []
     for i in range(len(input_arr)):
-        out_arr.extend([input_arr[i]]*bit_len)
+        out_arr.extend([input_arr[i]]*BIT_LENGTH)
     out_arr = 0.3*np.array(out_arr)
     return out_arr
 
 if __name__ == '__main__':
-    time = 2
     zero_pad = 1e5
-    in_arr = np.array([1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0])
+    in_arr = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
+    in_arr = in_arr*500
+    in_arr = np.array(in_arr)
     in_arr = in_arr*2 - 1
     x_real = arr_gen(in_arr)
     # pad with zeros

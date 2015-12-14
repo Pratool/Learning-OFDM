@@ -1,6 +1,9 @@
 import numpy as np
 import matplotlib.pyplot as plt
 
+# for implementing image capture
+#import matplotlib.image as mpimg
+
 SAMPLE_RATE = 0.25e6
 FFT_SIZE    = 4.4e-3*SAMPLE_RATE
 
@@ -91,6 +94,15 @@ def splice_digital_sig(time, rx_sig):
     """
     Returns the part of the signal where there are actually bits (not just
     white noise from waiting)
+
+    INPUT
+    time    times the signal was received (as numpy array)
+    rx_sig  received signal value (as numpy array of data type complex64)
+
+    OUTPUT
+    t       times the signal was actually caught (as numpy array)
+    rx      received signal values at transmission interval (as numpy array of
+            data type complex64)
     """
     # ignoring impulse defect at beginning of time series
     t = time[100:]
@@ -153,6 +165,18 @@ def sync_freq_defs(data_z, time):
     return synced_z
 
 def sync_long_sig(data_z, time):
+    """
+    Synchronizes the received data in short segments and pieces them together
+
+    INPUT
+    data_z:     numpy array of data type complex64 (float32 imaginary and
+                float32 real) with unsynchronized data values
+    time:       numpy array with the times at which the data was received
+
+    OUTPUT
+    synced_segments     stitched together numpy arrays of complex64 with
+                        frequency offsets removed
+    """
     synced_segments = []
     i = 0
     while i+FFT_SIZE< len(time):
@@ -163,13 +187,25 @@ def sync_long_sig(data_z, time):
         synced_segments.extend(sync_freq_defs(data_z[i:], time[i:]))
     return np.array(synced_segments)
 
+def get_arr_from_sig(t, rx):
+    """
+    Gets a binary array from the received signal
+    """
+    i = 0
+    while rx[i]-rx[i+1] < 0.3:
+        i += 1
+    j = i
+    while j < len(rx):
+        temp_ediff = np.ediff1d(rx[j:j+40])
+        if max(rx[j:j+40])-min(rx[j:j+40]) > 0.3:
+            for k in range(len(j
+        rx[j:j+40]
+        j += 50
+    for j in range(i, len(rx)):
+
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
     t, rx = splice_digital_sig(t, rx)
-    synced_rx = sync_freq_defs(rx, t)
     synced_rx2 = sync_long_sig(rx, t)
-
-    plt.plot(t, synced_rx.imag)
-    plt.plot(t, synced_rx2.imag)
-    plt.plot(t, synced_rx2.real)
+    plt.plot(t, synced_rx.real)
     plt.show()
