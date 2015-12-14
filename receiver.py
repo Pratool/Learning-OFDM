@@ -187,25 +187,27 @@ def sync_long_sig(data_z, time):
         synced_segments.extend(sync_freq_defs(data_z[i:], time[i:]))
     return np.array(synced_segments)
 
-def get_arr_from_sig(t, rx):
-    """
-    Gets a binary array from the received signal
-    """
-    i = 0
-    while rx[i]-rx[i+1] < 0.3:
-        i += 1
-    j = i
-    while j < len(rx):
-        temp_ediff = np.ediff1d(rx[j:j+40])
-        if max(rx[j:j+40])-min(rx[j:j+40]) > 0.3:
-            for k in range(len(j
-        rx[j:j+40]
-        j += 50
-    for j in range(i, len(rx)):
+
+#def git_arr_from_sig(t, rx):
+#    Gets a binary array from the received signal
+#    i = 0
+#    while rx[i]-rx[i+1] < 0.3:
+#        i += 1
+#    j = i
+#    while j < len(rx):
+#        temp_ediff = np.ediff1d(rx[j:j+40])
+#        if max(rx[j:j+40])-min(rx[j:j+40]) > 0.3:
+#            for k in range(len(j
+#        rx[j:j+40]
+#        j += 50
+#    for j in range(i, len(rx)):
 
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
+    #plt.plot(t, rx)
     t, rx = splice_digital_sig(t, rx)
-    synced_rx2 = sync_long_sig(rx, t)
-    plt.plot(t, synced_rx.real)
+    synced_rx = sync_long_sig(rx, t)
+    plt.plot(t, synced_rx.imag)
+    #plt.plot(t, np.angle(synced_rx))
+    #plt.plot(t[1:], np.ediff1d(np.angle(synced_rx)))
     plt.show()
