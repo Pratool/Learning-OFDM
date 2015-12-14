@@ -2,6 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 SAMPLE_RATE = 0.25e6
+FFT_SIZE    = 4.4e-3*SAMPLE_RATE
 
 def read_floats(filename):
     """
@@ -41,7 +42,7 @@ def plot_rx_t(data_z):
     plt.plot(time, data_z.real)
     plt.show()
 
-def fft_rx(data_z):
+def fft_rx(data_z, samp_rate):
     """
     Returns the FFT of data with frequency bins in output
 
@@ -54,8 +55,23 @@ def fft_rx(data_z):
     """
     z = data_z
     z_fft = np.fft.fft(z)
-    x = np.arange(len(z))
-    freq = SAMPLE_RATE*np.arange(len(z)) / len(z)
+
+    # concatenate postive frequency and negative frequency magnitudes
+    z_fft = np.hstack((z_fft[len(z_fft)/2:], z_fft[:int(len(z_fft)/2)]))
+
+    # generate frequency bins
+    freq = np.array(samp_rate*np.arange(len(z)) / len(z))
+    # add an element so that the the negative frequencies has the correct
+    # value
+    freq = freq[:((len(freq)/2) + (len(z_fft)%2))]
+
+    # horizontally flip and negate frequency bins half of frequency bins
+    # and then concatentate with frequency bins
+    freq = np.hstack((-1*freq[::-1], freq))
+
+    # remove last entry of freq in case 2 elements were added if z_fft had
+    # an odd length
+    freq = freq[:len(z_fft)]
     fft_data = (freq, z_fft)
     return fft_data
 
@@ -83,36 +99,34 @@ def splice_digital_sig(time, rx_sig):
     # normalizing signal
     rx = rx / rx.max()
 
-    plt.plot(t, abs(rx))
-    plt.show()
+    # 5 standard devations away from average value of noise
+    #avg_noise = np.average(abs(rx[:1000])) + 5*np.std(abs(rx[:1000]))
 
-    avg_noise = np.max(abs(rx[:100]))+0.5
-    thres = 1-avg_noise
-    thres = 0.3
+    # root mean square of noise
+    #avg_noise = np.sqrt( (( abs(rx[:1000]) ) ** 2).mean())
+
+    # general threshold
+    avg_noise = 0.5
 
     # truncate everything outside of signal
     sig_beg = 0
     sig_end = len(rx)-1
     for i in range(len(rx)):
-        if abs(rx[i]) > 0.5:
+        if abs(rx[i]) > avg_noise:
             sig_beg = i
             break
-    #print range(len(rx), 0, -1)
+
     for i in range(len(rx)-1, 0, -1):
-        if abs(rx[i]) > 0.4:
-            print i
+        if abs(rx[i]) > avg_noise:
             sig_end = i
             break
-    #ediff = np.ediff1d(abs(rx))
-    #print max(ediff)
-    #sig_end = np.where(ediff < -thres)[0][-1]+5
-    #sig_beg = np.where(ediff < -thres)[0][1]+5
+
     rx = rx[sig_beg:sig_end]
     t = t[sig_beg:sig_end]
 
     return (t, rx)
 
-def sync_freq_defs(data_z):
+def sync_freq_defs(data_z, time):
     """
     Synchronizes the received data by compensating for offset between
     transmitter frequency and receiver frequency
@@ -126,32 +140,36 @@ def sync_freq_defs(data_z):
                 float32 real) with frequency synchronized time data
     """
     z = data_z
-    freqs, z_sq_fft = fft_rx(z**2)
-
-    # recovers time info
-    time = np.arange(len(data_z))/SAMPLE_RATE
+    freqs, z_sq_fft = fft_rx(z**2, SAMPLE_RATE)
+    abs_z_sq_fft = abs(z_sq_fft)
 
     # Finds frequency corresponding to maximum of FFT(input^2) to get 2*f_delta
-    abs_z_sq_fft = (abs(z_sq_fft)[0:len(freqs)])
-    two_f_delta = freqs[np.where(abs_z_sq_fft==abs_z_sq_fft.max())]
+    loc = np.where(abs_z_sq_fft==max(abs_z_sq_fft))[0][0]
+    two_f_delta = freqs[loc]
 
-    print two_f_delta
     # demodulate original signal by multiplying complex number for phase shift
-    synced_z = z*np.exp(-1j*np.pi*two_f_delta*np.arange(len(time)))
+    synced_z = z*np.exp(-1j*np.pi*two_f_delta*time)
 
     return synced_z
 
+def sync_long_sig(data_z, time):
+    synced_segments = []
+    i = 0
+    while i+FFT_SIZE< len(time):
+        synced_segment = sync_freq_defs(data_z[i:i+FFT_SIZE], time[i:i+FFT_SIZE])
+        synced_segments.extend(synced_segment)
+        i += FFT_SIZE
+    if len(data_z) % FFT_SIZE> 0:
+        synced_segments.extend(sync_freq_defs(data_z[i:], time[i:]))
+    return np.array(synced_segments)
+
 if __name__ == '__main__':
     t, rx = read_floats('received.dat')
-    fft_size = 10e-3*SAMPLE_RATE
-    #fft_size = 1*SAMPLE_RATE
-    plt.show()
     t, rx = splice_digital_sig(t, rx)
-    #synced_rx = sync_freq_defs(rx[99*fft_size:100*fft_size])
-    #t = t[99*fft_size:100*fft_size]
-    #plt.plot(t, rx[99*fft_size:100*fft_size].real)
-    #plt.plot(t, synced_rx.real)
-    plt.plot(t, rx.real)
-    #plt.plot(t, abs(synced_rx))
-    #plt.plot(t, np.angle(rx, deg=True))
+    synced_rx = sync_freq_defs(rx, t)
+    synced_rx2 = sync_long_sig(rx, t)
+
+    plt.plot(t, synced_rx.imag)
+    plt.plot(t, synced_rx2.imag)
+    plt.plot(t, synced_rx2.real)
     plt.show()
