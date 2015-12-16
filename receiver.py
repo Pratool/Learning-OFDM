@@ -160,7 +160,7 @@ def sync_freq_defs(data_z, time):
     two_f_delta = freqs[loc]
 
     # demodulate original signal by multiplying complex number for phase shift
-    synced_z = z*np.exp(-1j*np.pi*two_f_delta*time)
+    synced_z = z*np.exp(-1j*2*np.pi*(two_f_delta/2)*time)
 
     return synced_z
 
@@ -185,29 +185,102 @@ def sync_long_sig(data_z, time):
         i += FFT_SIZE
     if len(data_z) % FFT_SIZE> 0:
         synced_segments.extend(sync_freq_defs(data_z[i:], time[i:]))
+
     return np.array(synced_segments)
 
+# def get_arr_from_sig(t, rx):
+#     """
+#     Gets a binary array from the received signal
+#     """
+#     i = 0
+#     while rx[i]-rx[i+1] < 0.3
+#         i += 1
+#     j = i
+#     while j < len(rx):
+#         temp_ediff = np.ediff1d(rx[j:j+40])
+#         if max(rx[j:j+40])-min(rx[j:j+40]) > 0.3:
+#             for k in range(len(j
+#         rx[j:j+40]
+#         j += 50
+#     for j in range(i, len(rx)):
 
-#def git_arr_from_sig(t, rx):
-#    Gets a binary array from the received signal
-#    i = 0
-#    while rx[i]-rx[i+1] < 0.3:
-#        i += 1
-#    j = i
-#    while j < len(rx):
-#        temp_ediff = np.ediff1d(rx[j:j+40])
-#        if max(rx[j:j+40])-min(rx[j:j+40]) > 0.3:
-#            for k in range(len(j
-#        rx[j:j+40]
-#        j += 50
-#    for j in range(i, len(rx)):
+def read_bytes(t,rx) :
+    """
+    Gets a binary array from the received signal. Finds where the zeros are.
+    """
+    # [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
+    bytes_array = []
+    count_wrong = 0
+    for i in range((len(rx)/50)+1):
+        if (rx[25+50*i] > 0):
+            # if (25+50*i )
+            bytes_array.append(1)
+        else:
+            bytes_array.append(0)
+    
+    for i in range(len(bytes_array)):
+        if (orig_array[i] - bytes_array[i] != 0):
+            count_wrong += 1
+    return bytes_array, count_wrong
+
+def final_bytes(orig_bytes_array, list_phase_offsets_indeces):
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
+    final_bytes_array = []
+    count_wrong = 0
+    for j in range(len(list_phase_offsets_indeces)-1):
+        if (j%2 != 0):
+            for k in range(list_phase_offsets_indeces[j],list_phase_offsets_indeces[j+1]):
+                if (orig_array[k] == 0):
+                    final_bytes_array.append(0)
+                else:
+                    final_bytes_array.append(1)
+        else:
+            for k in range(list_phase_offsets_indeces[j],list_phase_offsets_indeces[j+1]):
+                final_bytes_array.append(orig_array[k])
+
+    for i in range(len(final_bytes_array)):
+        if (orig_array[i] - final_bytes_array[i] != 0):
+            count_wrong += 1
+    return final_bytes_array, count_wrong
+    # for l in range(len(orig_array)):
+
+
+
+def find_phase_offsets(rx) :
+    list_max = []
+    final_list_max = []
+    temp = []
+    final_list_max.append(0)
+    phase_offsets = np.ediff1d(rx)
+    for i in range(len(phase_offsets)):
+        if (phase_offsets[i] > 7):
+            list_max.append(i)
+
+    for i in range(len(list_max)):
+        # temp.append(((list_max[i] - (list_max[i]%50)))/50)
+        final_list_max.append(((list_max[i] - (list_max[i]%50)))/50)
+
+    final_list_max = sorted(list(set(final_list_max)))
+    # print temp
+    # print len(final_list_max)
+    return final_list_max
 
 if __name__ == '__main__':
-    t, rx = read_floats('received.dat')
-    #plt.plot(t, rx)
+    t, rx = read_floats('received2.dat')
     t, rx = splice_digital_sig(t, rx)
     synced_rx = sync_long_sig(rx, t)
-    plt.plot(t, synced_rx.imag)
-    #plt.plot(t, np.angle(synced_rx))
-    #plt.plot(t[1:], np.ediff1d(np.angle(synced_rx)))
+    list_phase_offsets_indeces = find_phase_offsets(np.ediff1d(np.angle(synced_rx)))
+    bytes_array, count_wrong =  read_bytes(t,synced_rx.imag)
+    bytes_array2, count_wrong2 = final_bytes(bytes_array, list_phase_offsets_indeces)
+
+    print bytes_array
+    print bytes_array2
+    print count_wrong2
+
+    plt.plot(t[701:5101], np.ediff1d(np.angle(synced_rx))[700:5100])
+    # plt.plot(t[0:6000], synced_rx.real[0:6000])
+    plt.plot(t[0:6000], synced_rx.imag[0:6000])
+
+    # plt.plot(t, synced_rx.real)
     plt.show()
