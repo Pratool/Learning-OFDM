@@ -203,12 +203,36 @@ def sync_long_sig(data_z, time):
 #         rx[j:j+40]
 #         j += 50
 #     for j in range(i, len(rx)):
+def find_phase_flips(rx) :
+    """
+    Finds the location of all of the phase flips
+
+    Input: Phase Angles
+
+    Output: Indeces of where in the original array, the phase flips
+    """
+    list_max = []
+    final_list_max = []
+    temp = []
+    final_list_max.append(0)
+    phase_diff = np.ediff1d(rx)
+    for i in range(len(phase_diff)):
+        if (phase_diff[i] > 7):
+            list_max.append(i)
+
+    for i in range(len(list_max)):
+        temp.append(((list_max[i] - (list_max[i]%50)))/50)
+        final_list_max.append(((list_max[i] - (list_max[i]%50)))/50)
+
+    final_list_max = sorted(list(set(final_list_max)))
+    print temp
+    # print len(final_list_max)
+    return final_list_max
 
 def read_bytes(t,rx) :
     """
-    Gets a binary array from the received signal. Finds where the zeros are.
+    Gets a binary array from the received signal. Finds the median of each single padded signal
     """
-    # [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
     orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
     bytes_array = []
     count_wrong = 0
@@ -224,55 +248,39 @@ def read_bytes(t,rx) :
             count_wrong += 1
     return bytes_array, count_wrong
 
-def final_bytes(orig_bytes_array, list_phase_offsets_indeces):
+def final_bytes(orig_bytes_array, list_phase_flips_indeces):
+    """
+    Uses the list of phase offset indeces to figure out when to flip bits and when to flip them back
+
+    Input: Original array of bytes (without accounting for flipped bits), and list of where
+    """
     orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
     final_bytes_array = []
     count_wrong = 0
-    for j in range(len(list_phase_offsets_indeces)-1):
+    for j in range(len(list_phase_flips_indeces)-1):
         if (j%2 != 0):
-            for k in range(list_phase_offsets_indeces[j],list_phase_offsets_indeces[j+1]):
+            for k in range(list_phase_flips_indeces[j],list_phase_flips_indeces[j+1]):
                 if (orig_array[k] == 0):
                     final_bytes_array.append(0)
                 else:
                     final_bytes_array.append(1)
         else:
-            for k in range(list_phase_offsets_indeces[j],list_phase_offsets_indeces[j+1]):
+            for k in range(list_phase_flips_indeces[j],list_phase_flips_indeces[j+1]):
                 final_bytes_array.append(orig_array[k])
 
     for i in range(len(final_bytes_array)):
         if (orig_array[i] - final_bytes_array[i] != 0):
             count_wrong += 1
     return final_bytes_array, count_wrong
-    # for l in range(len(orig_array)):
 
-
-
-def find_phase_offsets(rx) :
-    list_max = []
-    final_list_max = []
-    temp = []
-    final_list_max.append(0)
-    phase_offsets = np.ediff1d(rx)
-    for i in range(len(phase_offsets)):
-        if (phase_offsets[i] > 7):
-            list_max.append(i)
-
-    for i in range(len(list_max)):
-        # temp.append(((list_max[i] - (list_max[i]%50)))/50)
-        final_list_max.append(((list_max[i] - (list_max[i]%50)))/50)
-
-    final_list_max = sorted(list(set(final_list_max)))
-    # print temp
-    # print len(final_list_max)
-    return final_list_max
 
 if __name__ == '__main__':
     t, rx = read_floats('received2.dat')
     t, rx = splice_digital_sig(t, rx)
     synced_rx = sync_long_sig(rx, t)
-    list_phase_offsets_indeces = find_phase_offsets(np.ediff1d(np.angle(synced_rx)))
+    list_phase_flips_indeces = find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     bytes_array, count_wrong =  read_bytes(t,synced_rx.imag)
-    bytes_array2, count_wrong2 = final_bytes(bytes_array, list_phase_offsets_indeces)
+    bytes_array2, count_wrong2 = final_bytes(bytes_array, list_phase_flips_indeces)
 
     print bytes_array
     print bytes_array2
