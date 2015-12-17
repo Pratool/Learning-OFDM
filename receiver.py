@@ -203,6 +203,7 @@ def sync_long_sig(data_z, time):
 #         rx[j:j+40]
 #         j += 50
 #     for j in range(i, len(rx)):
+
 def find_phase_flips(rx) :
     """
     Finds the location of all of the phase flips
@@ -215,17 +216,23 @@ def find_phase_flips(rx) :
     final_list_max = []
     temp = []
     final_list_max.append(0)
+
+    #Find the index of where the angle differences are the biggest (where the phase flips) 
     phase_diff = np.ediff1d(rx)
     for i in range(len(phase_diff)):
         if (phase_diff[i] > 7):
             list_max.append(i)
 
+    #Going through all of the indeces, we find the index that it matches to in an array that is every 50th bit, so 723 would
+    #would be closest to 700 (the closest number that is divisible by 700 and smaller than 723), and then divide that by 50 to
+    #find what bit that would match to in our original array of bits (that we had found the median bit of each padded signal)
     for i in range(len(list_max)):
-        temp.append(((list_max[i] - (list_max[i]%50)))/50)
+        # temp.append(((list_max[i] - (list_max[i]%50)))/50)
         final_list_max.append(((list_max[i] - (list_max[i]%50)))/50)
 
+    #Remove duplicates and sort the list:
     final_list_max = sorted(list(set(final_list_max)))
-    print temp
+    # print temp
     # print len(final_list_max)
     return final_list_max
 
@@ -243,12 +250,14 @@ def read_bytes(t,rx) :
         else:
             bytes_array.append(0)
     
+    #Finds the number of incorrect bytes
     for i in range(len(bytes_array)):
         if (orig_array[i] - bytes_array[i] != 0):
             count_wrong += 1
+
     return bytes_array, count_wrong
 
-def final_bytes(orig_bytes_array, list_phase_flips_indeces):
+def corrected_bytes(orig_bytes_array, list_phase_flips_indeces):
     """
     Uses the list of phase offset indeces to figure out when to flip bits and when to flip them back
 
@@ -257,20 +266,31 @@ def final_bytes(orig_bytes_array, list_phase_flips_indeces):
     orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
     final_bytes_array = []
     count_wrong = 0
+
+    # Append the final bit locationto list_phase_flips_indeces
+    list_phase_flips_indeces.append(len(orig_array))
+
+    #Finds where the phase flips and flips back, and appends all of that to a new array
     for j in range(len(list_phase_flips_indeces)-1):
+        #Assuming the phase is not initially flipped, every odd index of list_phase_flips_indeces will result in those points
+        #from orig_array to be flipped and then appended to final_bytes_array
         if (j%2 != 0):
             for k in range(list_phase_flips_indeces[j],list_phase_flips_indeces[j+1]):
                 if (orig_array[k] == 0):
                     final_bytes_array.append(0)
                 else:
                     final_bytes_array.append(1)
+        #For every even index of list_phase_flips_indeces will result in those points from orig_array to stay the same and be 
+        #appended to final_bytes_array
         else:
             for k in range(list_phase_flips_indeces[j],list_phase_flips_indeces[j+1]):
                 final_bytes_array.append(orig_array[k])
 
-    for i in range(len(final_bytes_array)):
+    #Counts the number of incorrect bytes
+    for i in range(len(orig_array)):
         if (orig_array[i] - final_bytes_array[i] != 0):
             count_wrong += 1
+
     return final_bytes_array, count_wrong
 
 
@@ -278,17 +298,21 @@ if __name__ == '__main__':
     t, rx = read_floats('received2.dat')
     t, rx = splice_digital_sig(t, rx)
     synced_rx = sync_long_sig(rx, t)
+
+    #Finds where the phase flips indeces are in orig_array:
     list_phase_flips_indeces = find_phase_flips(np.ediff1d(np.angle(synced_rx)))
+    #Converts signal to initial bytes
     bytes_array, count_wrong =  read_bytes(t,synced_rx.imag)
-    bytes_array2, count_wrong2 = final_bytes(bytes_array, list_phase_flips_indeces)
+    #Initial byte array gets corrected_bytes
+    bytes_array2, count_wrong2 = corrected_bytes(bytes_array, list_phase_flips_indeces)
 
-    print bytes_array
-    print bytes_array2
-    print count_wrong2
+    # print bytes_array
+    # print bytes_array2
+    # print count_wrong2
 
-    plt.plot(t[701:5101], np.ediff1d(np.angle(synced_rx))[700:5100])
+    # plt.plot(t[701:5101], np.ediff1d(np.angle(synced_rx))[700:5100])
     # plt.plot(t[0:6000], synced_rx.real[0:6000])
-    plt.plot(t[0:6000], synced_rx.imag[0:6000])
+    # plt.plot(t[0:6000], synced_rx.imag[0:6000])
 
     # plt.plot(t, synced_rx.real)
     plt.show()
