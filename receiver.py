@@ -206,6 +206,7 @@ def read_bytes(pre, signal, time, orig_array):
     x_real = rx_real / rx_real.max()
     max_t_real = max(x_real[0:300])
     min_t_real = min(x_real[0:300])
+    r_thres = (min_t_real, max_t_real)
 
     temp_real = 0
     for i in range(len(real_signal_diff)):
@@ -223,6 +224,7 @@ def read_bytes(pre, signal, time, orig_array):
     x_imag = rx_imag / rx_imag.max()
     max_t_imag = max(x_imag[0:300])
     min_t_imag = min(x_imag[0:300])
+    i_thres = (min_t_imag, max_t_imag)
 
     temp_imag = 0
     for i in range(len(imag_signal_diff)):
@@ -241,18 +243,40 @@ def read_bytes(pre, signal, time, orig_array):
     list_bytes = []
     n = 25
     num_error = 0
+
+    # 0 = real, 1 = imaginary
+    cur_ri = 1
+    cur_arrs = (signal.real, signal.imag)
+    cur_thres = (r_thres, i_thres)
+    #cur_thres = ( (-.5, .5), (-.5,.5) )
+    cur_zeros = (zeros_real, zeros_imag)
     for j in range(len(zeros_imag)):
-        bit = signal.imag[n] > 0
+        if cur_arrs[cur_ri][n] > cur_thres[cur_ri][0] and cur_arrs[cur_ri][n] < cur_thres[cur_ri][1]:
+            #print 'switching imag and real'
+            cur_ri = (cur_ri+1)%2
+            #print cur_ri
+            prev_bit = cur_zeros[(cur_ri+1)%2][j-1]+25
+            if list_bytes[-1] == -cur_arrs[cur_ri][n]:
+                cur_arrs[cur_ri] = -cur_arrs[cur_ri]
+        bit = cur_arrs[cur_ri][n] > 0
         list_bytes.append(bit)
         num_error += bit == orig_array[j]
-        if ((n + 50)< zeros_imag[j]):
+        if ((n + 50) < cur_zeros[cur_ri][j]):
             n = 50 + n
         else:
-            n = zeros_imag[j] + 25
-    print num_error
-
-
-
+            n = cur_zeros[cur_ri][j] + 25
+    max_bits = 100
+    bit_start = 0
+    bit_end = bit_start + max_bits
+    list_bytes = np.array(list_bytes)
+    orig_array = np.array(orig_array)
+    comp_arr = [ list_bytes[m] != orig_array[m] for m in range(len(list_bytes)) ]
+    #comp_arr = np.array(list_bytes != orig_array)
+    comp_arr = np.array(comp_arr)
+    plt.plot(comp_arr)
+    plt.ylim([-0.1, 1.1])
+    plt.show()
+    print num_error, len(orig_array)
 
 if __name__ == '__main__':
     t, rx_pre = read_floats('received2.dat')
