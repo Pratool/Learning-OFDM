@@ -30,13 +30,13 @@ def arr_gen(input_arr):
     out_arr = []
     for i in range(len(input_arr)):
         out_arr.extend([input_arr[i]]*BIT_LENGTH)
-    out_arr = 0.7*np.array(out_arr)
+    out_arr = 0.9*np.array(out_arr)
     return out_arr
 
 if __name__ == '__main__':
     zero_pad = 1e5
     in_arr = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]
-    #in_arr = in_arr*500
+    in_arr = in_arr*500
     in_arr = np.array(in_arr)
     in_arr = in_arr*2 - 1
     x_real = arr_gen(in_arr)

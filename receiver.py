@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.image as mpimg
 
 SAMPLE_RATE = 0.25e6
-FFT_SIZE    = 2.4e-2*SAMPLE_RATE
+FFT_SIZE    = 2.4e-1*SAMPLE_RATE
 BIT_LENGTH  = 50
 
 def read_floats(filename):
@@ -119,7 +119,7 @@ def splice_digital_sig(time, rx_sig):
     #avg_noise = np.sqrt( (( abs(rx[:1000]) ) ** 2).mean())
 
     # general threshold
-    avg_noise = 0.5
+    avg_noise = 0.7
 
     # truncate everything outside of signal
     sig_beg = 0
@@ -187,6 +187,11 @@ def sync_long_sig(data_z, time):
     if len(data_z) % FFT_SIZE> 0:
         synced_segments.extend(sync_freq_defs(data_z[i:], time[i:]))
 
+    fr, fft = fft_rx(data_z[0:FFT_SIZE], SAMPLE_RATE)
+    #plt.plot(fr, abs(fft))
+    #plt.plot(fr, np.angle(fft))
+    #plt.show()
+
     return np.array(synced_segments)
 
 def read_bytes(pre, signal, time, orig_array):
@@ -246,18 +251,17 @@ def read_bytes(pre, signal, time, orig_array):
 
     # 0 = real, 1 = imaginary
     cur_ri = 1
-    cur_arrs = (signal.real, signal.imag)
-    cur_thres = (r_thres, i_thres)
-    #cur_thres = ( (-.5, .5), (-.5,.5) )
+    cur_arrs = [signal.real, signal.imag]
+    #cur_thres = (r_thres, i_thres)
+    cur_thres = ( (-.6, .6), (-.6,.6) )
     cur_zeros = (zeros_real, zeros_imag)
     for j in range(len(zeros_imag)):
-        if cur_arrs[cur_ri][n] > cur_thres[cur_ri][0] and cur_arrs[cur_ri][n] < cur_thres[cur_ri][1]:
-            #print 'switching imag and real'
-            cur_ri = (cur_ri+1)%2
-            #print cur_ri
-            prev_bit = cur_zeros[(cur_ri+1)%2][j-1]+25
-            if list_bytes[-1] == -cur_arrs[cur_ri][n]:
-                cur_arrs[cur_ri] = -cur_arrs[cur_ri]
+        #if cur_arrs[cur_ri][n] > cur_thres[cur_ri][0] and cur_arrs[cur_ri][n] < cur_thres[cur_ri][1]:
+        #    cur_ri = (cur_ri+1)%2
+        #    prev_bit = cur_zeros[(cur_ri+1)%2][j-1]+25
+        #    print 'switching', n
+        #    if list_bytes[-1] == -(cur_arrs[cur_ri][n] > 0):
+        #        cur_arrs[cur_ri] = -cur_arrs[cur_ri]
         bit = cur_arrs[cur_ri][n] > 0
         list_bytes.append(bit)
         num_error += bit == orig_array[j]
@@ -265,21 +269,18 @@ def read_bytes(pre, signal, time, orig_array):
             n = 50 + n
         else:
             n = cur_zeros[cur_ri][j] + 25
-    max_bits = 100
-    bit_start = 0
-    bit_end = bit_start + max_bits
     list_bytes = np.array(list_bytes)
     orig_array = np.array(orig_array)
-    comp_arr = [ list_bytes[m] != orig_array[m] for m in range(len(list_bytes)) ]
+    comp_arr = [ 1 if list_bytes[m] != orig_array[m] else 0 for m in range(len(list_bytes)) ]
     #comp_arr = np.array(list_bytes != orig_array)
     comp_arr = np.array(comp_arr)
-    plt.plot(comp_arr)
-    plt.ylim([-0.1, 1.1])
-    plt.show()
-    print num_error, len(orig_array)
+    #plt.plot(comp_arr)
+    #plt.ylim([-0.1, 1.1])
+    #plt.show()
+    #print num_error, len(orig_array), sum(comp_arr)
 
 if __name__ == '__main__':
-    t, rx_pre = read_floats('received2.dat')
+    t, rx_pre = read_floats('received.dat')
     t, rx = splice_digital_sig(t, rx_pre)
     synced_rx = sync_long_sig(rx, t)
 
@@ -289,14 +290,10 @@ if __name__ == '__main__':
         ext_array.extend([orig_array[i]]*(BIT_LENGTH-1))
     ext_array = np.array(ext_array)
     ext_array = 2*ext_array-1
-    ext_array = 0.6*ext_array
-
+    ext_array = 0.9*ext_array
 
     read_bytes(rx_pre, synced_rx, t, orig_array)
-    # plt.plot(t[1:3001], np.ediff1d(np.angle(synced_rx))[0:3000])
-    plt.plot(t[0:50000], synced_rx.real[0:50000])
-    plt.plot(t[0:50000], synced_rx.imag[0:50000])
-    # plt.plot(t[0:50000], ext_array[0:50000])
-
-    # plt.plot(t, synced_rx.real)
+    plts = 2000
+    plte = 3000
+    plt.plot(t, synced_rx)
     plt.show()
