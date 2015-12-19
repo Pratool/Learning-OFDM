@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.image as mpimg
 
 SAMPLE_RATE = 0.25e6
-FFT_SIZE    = 4.4e-1*SAMPLE_RATE
+FFT_SIZE    = 4.4e-2*SAMPLE_RATE
 BIT_LENGTH  = 50
 
 def read_floats(filename):
@@ -159,16 +159,20 @@ def sync_freq_defs(data_z, time):
     # Finds frequency corresponding to maximum of FFT(input^2) to get 2*f_delta
     loc = np.where(abs_z_sq_fft==max(abs_z_sq_fft))[0][0]
     two_f_delta = freqs[loc]
+    phi = np.angle(z_sq_fft[loc])
 
     # demodulate original signal by multiplying complex number for phase shift
     freq_bin = np.mean(np.diff(freqs))
-    synced_z = z*np.exp(-1j*2*np.pi*(two_f_delta/2)*time)
-    synced_z2 = z*np.exp(-1j*2*np.pi*(two_f_delta/2 - freq_bin/2)*time)
-    synced_z3 = z*np.exp(-1j*2*np.pi*(two_f_delta/2 + freq_bin/2)*time)
 
-    print freq_bin
+    bestValue = 0
+    for x in np.linspace(-freq_bin, freq_bin, 100):
+        synced = z*np.exp(-1j*2*np.pi*(two_f_delta/2 + x)*time)
+        value = np.var(synced.real)/np.var(synced.imag)
+        if value > bestValue:
+            bestValue = value
+            best_synced = synced
 
-    return synced_z2
+    return best_synced
 
 def sync_long_sig(data_z, time):
     """
@@ -201,7 +205,7 @@ def sync_long_sig(data_z, time):
 
 
 def read_bytes(rx):
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*100
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*1000
     bytes_array = []
     wrong = []
     count = 0
@@ -242,7 +246,7 @@ def read_bytes(rx):
     for j in range(len(bytes_array)):
         if (orig_array[j] != bytes_array[j]):
             wrong.append(j)
-    print len(wrong)
+    print wrong
     # print bytes_array
 
 
@@ -251,7 +255,7 @@ if __name__ == '__main__':
     t, rx = splice_digital_sig(t, rx_pre)
     synced_rx = sync_long_sig(rx, t)
 
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*16
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*100
     ext_array = []
     for i in range(len(orig_array)):
         ext_array.extend([orig_array[i]]*(BIT_LENGTH-1))
@@ -259,15 +263,15 @@ if __name__ == '__main__':
     ext_array = 2*ext_array-1
     ext_array = 0.9*ext_array
 
-    print read_bytes(-synced_rx.imag)
+    print read_bytes(-synced_rx.real)
     # find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     # read_bytes(rx_pre, synced_rx, t, orig_array)
     plts = 2000
     plte = 3000
     # plt.plot(t[3001:10001], np.ediff1d(np.angle(synced_rx))[3000:10000])
     start = 0
-    plt.plot(t[start:], synced_rx.imag[start:])
-    # plt.plot(t[start:], synced_rx.real[start:])
+    plt.plot(t, synced_rx.imag)
+    plt.plot(t, synced_rx.real)
     plt.xlabel("Time")
     plt.ylabel("Frequency")
     # plt.plot(t, synced_rx.real)
