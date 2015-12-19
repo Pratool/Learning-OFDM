@@ -5,7 +5,7 @@ import matplotlib.pyplot as plt
 #import matplotlib.image as mpimg
 
 SAMPLE_RATE = 0.25e6
-FFT_SIZE    = 4.4e-2*SAMPLE_RATE
+FFT_SIZE    = 4.4e-1*SAMPLE_RATE
 BIT_LENGTH  = 20
 
 def read_floats(filename):
@@ -161,9 +161,14 @@ def sync_freq_defs(data_z, time):
     two_f_delta = freqs[loc]
 
     # demodulate original signal by multiplying complex number for phase shift
+    freq_bin = np.mean(np.diff(freqs))
     synced_z = z*np.exp(-1j*2*np.pi*(two_f_delta/2)*time)
+    synced_z2 = z*np.exp(-1j*2*np.pi*(two_f_delta/2 - freq_bin/2)*time)
+    synced_z3 = z*np.exp(-1j*2*np.pi*(two_f_delta/2 + freq_bin/2)*time)
 
-    return synced_z
+    print freq_bin
+
+    return synced_z2
 
 def sync_long_sig(data_z, time):
     """
@@ -282,43 +287,43 @@ def sync_long_sig(data_z, time):
 #     plt.show()
 
 def read_bytes(rx):
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*20
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*100
     bytes_array = []
     wrong = []
     count = 0
-    for i in range(((len(rx)/BIT_LENGTH)+1)/16):
-        count += 1
-        # print count
-        if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
-            # print "here"
-            for k in range(16*i, 16*i+16):
-                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-                    bytes_array.append(0)
-                else:
-                    bytes_array.append(1)
-        elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
-            for k in range(16*i, 16*i+16):
-                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-                    bytes_array.append(1)
-                else:
-                    bytes_array.append(0)
-        else:
-            for k in range(16*i, 16*i+16):
-                if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
-                    bytes_array.append(0)
-                else:
-                    bytes_array.append(1)
-
-    print bytes_array
-    print len(bytes_array)
-    print len(orig_array)
-
-    # for i in range((len(rx)/BIT_LENGTH)+1):
-    #     if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
-    #         # if (25+50*i )
-    #         bytes_array.append(1)
+    # for i in range(((len(rx)/BIT_LENGTH)+1)/16):
+    #     count += 1
+    #     # print count
+    #     if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
+    #         # print "here"
+    #         for k in range(16*i, 16*i+16):
+    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+    #                 bytes_array.append(0)
+    #             else:
+    #                 bytes_array.append(1)
+    #     elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
+    #         for k in range(16*i, 16*i+16):
+    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+    #                 bytes_array.append(1)
+    #             else:
+    #                 bytes_array.append(0)
     #     else:
-    #         bytes_array.append(0)
+    #         for k in range(16*i, 16*i+16):
+    #             if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
+    #                 bytes_array.append(0)
+    #             else:
+    #                 bytes_array.append(1)
+
+    # print bytes_array
+    # print len(bytes_array)
+    # print len(orig_array)
+
+    for i in range((len(rx)/BIT_LENGTH)+1):
+        if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
+            # if (25+50*i )
+            bytes_array.append(1)
+        else:
+            bytes_array.append(0)
 
     for j in range(len(bytes_array)):
         if (orig_array[j] != bytes_array[j]):
@@ -373,7 +378,7 @@ if __name__ == '__main__':
     ext_array = 2*ext_array-1
     ext_array = 0.9*ext_array
 
-    # print read_bytes(synced_rx.real)
+    print read_bytes(-synced_rx.imag)
     # find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     # read_bytes(rx_pre, synced_rx, t, orig_array)
     plts = 2000
@@ -381,7 +386,7 @@ if __name__ == '__main__':
     # plt.plot(t[3001:10001], np.ediff1d(np.angle(synced_rx))[3000:10000])
     start = 0
     plt.plot(t[start:], synced_rx.imag[start:])
-    plt.plot(t[start:], synced_rx.real[start:])
+    # plt.plot(t[start:], synced_rx.real[start:])
     plt.xlabel("Time")
     plt.ylabel("Frequency")
     # plt.plot(t, synced_rx.real)
