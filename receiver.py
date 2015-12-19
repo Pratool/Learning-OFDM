@@ -6,7 +6,7 @@ import matplotlib.pyplot as plt
 
 SAMPLE_RATE = 0.25e6
 FFT_SIZE    = 4.4e-2*SAMPLE_RATE
-BIT_LENGTH  = 50
+BIT_LENGTH  = 20
 
 def read_floats(filename):
     """
@@ -282,37 +282,39 @@ def sync_long_sig(data_z, time):
 #     plt.show()
 
 def read_bytes(rx):
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*20
     bytes_array = []
     wrong = []
     count = 0
-    for i in range(((len(rx)/50)+1)/16):
+    for i in range(((len(rx)/BIT_LENGTH)+1)/16):
         count += 1
         # print count
-        if (rx[25 + 50*16*i] >0 and rx[25 + 50*16*i + 50] > 0):
+        if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
             # print "here"
             for k in range(16*i, 16*i+16):
-                if (rx[25 + 50*k] < 0):
+                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
                     bytes_array.append(0)
                 else:
                     bytes_array.append(1)
-        elif (rx[25 + 50*16*i] < 0 and rx[25 + 50*16*i + 50] < 0):
+        elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
             for k in range(16*i, 16*i+16):
-                if (rx[25 + 50*k] < 0):
+                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
                     bytes_array.append(1)
                 else:
                     bytes_array.append(0)
         else:
             for k in range(16*i, 16*i+16):
-                if (rx[25+50*k] < 0):
+                if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
                     bytes_array.append(0)
                 else:
                     bytes_array.append(1)
 
     print bytes_array
+    print len(bytes_array)
+    print len(orig_array)
 
-    # for i in range((len(rx)/50)+1):
-    #     if (rx[25+50*i] > 0):
+    # for i in range((len(rx)/BIT_LENGTH)+1):
+    #     if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
     #         # if (25+50*i )
     #         bytes_array.append(1)
     #     else:
@@ -363,7 +365,7 @@ if __name__ == '__main__':
     t, rx = splice_digital_sig(t, rx_pre)
     synced_rx = sync_long_sig(rx, t)
 
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*500
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*16
     ext_array = []
     for i in range(len(orig_array)):
         ext_array.extend([orig_array[i]]*(BIT_LENGTH-1))
@@ -371,14 +373,15 @@ if __name__ == '__main__':
     ext_array = 2*ext_array-1
     ext_array = 0.9*ext_array
 
-    # print read_bytes(synced_rx.imag)
+    # print read_bytes(synced_rx.real)
     # find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     # read_bytes(rx_pre, synced_rx, t, orig_array)
     plts = 2000
     plte = 3000
     # plt.plot(t[3001:10001], np.ediff1d(np.angle(synced_rx))[3000:10000])
-    plt.plot(t[1000:], synced_rx.imag[1000:])
-    plt.plot(t[1000:], synced_rx.real[1000:])
+    start = 0
+    plt.plot(t[start:], synced_rx.imag[start:])
+    plt.plot(t[start:], synced_rx.real[start:])
     plt.xlabel("Time")
     plt.ylabel("Frequency")
     # plt.plot(t, synced_rx.real)
