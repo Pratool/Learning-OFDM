@@ -203,59 +203,112 @@ def sync_long_sig(data_z, time):
 
     return np.array(synced_segments)
 
-
+"""
 def read_bytes(rx):
     orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*1000
     bytes_array = []
     wrong = []
     count = 0
-    # for i in range(((len(rx)/BIT_LENGTH)+1)/16):
-    #     count += 1
-    #     # print count
-    #     if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
-    #         # print "here"
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(0)
-    #             else:
-    #                 bytes_array.append(1)
-    #     elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(1)
-    #             else:
-    #                 bytes_array.append(0)
-    #     else:
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(0)
-    #             else:
-    #                 bytes_array.append(1)
+    for i in range(((len(rx)/BIT_LENGTH)+1)/16):
+         count += 1
+         print count
+         if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
+             print "here"
+             for k in range(16*i, 16*i+16):
+                 if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+                     bytes_array.append(0)
+                 else:
+                     bytes_array.append(1)
+         elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
+             for k in range(16*i, 16*i+16):
+                 if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+                     bytes_array.append(1)
+                 else:
+                     bytes_array.append(0)
+         else:
+             for k in range(16*i, 16*i+16):
+                 if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
+                     bytes_array.append(0)
+                 else:
+                     bytes_array.append(1)
 
-    # print bytes_array
-    # print len(bytes_array)
-    # print len(orig_array)
+    print bytes_array
+    print len(bytes_array)
+    print len(orig_array)
 
     for i in range((len(rx)/BIT_LENGTH)+1):
         if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
-            # if (25+50*i )
+            if (25+50*i )
             bytes_array.append(1)
         else:
             bytes_array.append(0)
-
+    
     for j in range(len(bytes_array)):
         if (orig_array[j] != bytes_array[j]):
             wrong.append(j)
-    print wrong
-    # print bytes_array
+     print wrong
+     print bytes_array
+"""
 
+def sample_correct_bits(rx):
+    #rxdiff = np.ediff1d(rx)
+    rxd = []
+    nrxd = []
+    for i in range(len(rx)-1):
+        if abs(rx[i] - rx[i+1]) > 1*abs(rx[i]) and abs(rx[i+15 if i < len(rx)-16 else i]) > 0.1:
+            rxd.append(i)
+            plt.plot(i, rx[i], 'ro')
+    plt.plot(rx)
+    plt.show()
+    print 'done with first for loop. len(rxd):', len(rxd)
+    """
+    j = 0
+    while j < len(rxd)-1:
+        nrxd.append(rxd[j])
+        if abs(rxd[j]-rxd[j+1]) < 0.1:
+            while abs(rxd[j]-rxd[j+1]) < 0.1:
+                j += 1
+        else:
+            j += 1
+    print 'done with nested while loop'
+
+    byte_arr = []
+    i = BIT_LENGTH / 2
+    j = 0
+    while i < len(rx):
+        byte_arr.append(int(rx[i]>0))
+        if i > nrxd[j] and j+1 < len(nrxd):
+            j += 1
+            i = nrxd[j]+ (BIT_LENGTH/2)
+        else:
+            i += BIT_LENGTH
+    print 'done with 2nd while loop'
+    return np.array(byte_arr)
+    """
+
+def check_with_bits(rx):
+    flipped_rx = []
+    for i in range(0, len(rx)-1, 16):
+        if i != 1:
+            flipped_rx.extend(1-rx[i:i+15])
+        else:
+            flipped_rx.extend(rx[i:i+15])
+    return np.array(flipped_rx)
+
+def check_with_orig(orig, rx_bits):
+    errors = 0
+    for i in range(len(rx_bits)):
+        errors += (orig[i] != rx_bits[i])
+    return errors
 
 if __name__ == '__main__':
     t, rx_pre = read_floats('received.dat')
     t, rx = splice_digital_sig(t, rx_pre)
     synced_rx = sync_long_sig(rx, t)
+    check_with_bits(synced_rx)
 
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*100
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*1000
+    orig_array = np.array(orig_array)
     ext_array = []
     for i in range(len(orig_array)):
         ext_array.extend([orig_array[i]]*(BIT_LENGTH-1))
@@ -263,17 +316,33 @@ if __name__ == '__main__':
     ext_array = 2*ext_array-1
     ext_array = 0.9*ext_array
 
-    print read_bytes(-synced_rx.real)
+    rx_bytes = sample_correct_bits(synced_rx.real)
+
+    #checked_rx_bytes = check_with_bits(rx_bytes)
+    #print check_with_orig(orig_array, checked_rx_bytes)
+
+    #print read_bytes(-synced_rx.real)
     # find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     # read_bytes(rx_pre, synced_rx, t, orig_array)
     plts = 2000
     plte = 3000
     # plt.plot(t[3001:10001], np.ediff1d(np.angle(synced_rx))[3000:10000])
     start = 0
-    plt.plot(t, synced_rx.imag)
-    plt.plot(t, synced_rx.real)
-    plt.xlabel("Time")
-    plt.ylabel("Frequency")
+    #plt.plot(t, synced_rx.imag)
+    for i in range(4, 7):
+        print rx_bytes[i*16: (i+1)*16]
+        print orig_array[i*16: (i+1)*16]
+        print
+    print check_with_orig(orig_array, rx_bytes)
+    #plt.plot(t, synced_rx.real)
+    checks = [1 if orig_array[i] != rx_bytes[i] else 0 for i in range(len(rx_bytes))]
+    checks = np.array(checks)
+    plt.plot(checks)
+    #plt.xlabel("Time")
+    #plt.ylabel("Frequency")
     # plt.plot(t, synced_rx.real)
     # plt.plot(t, rx)
+
+    #plt.plot(checked_rx_bytes)
+    #plt.plot(orig_array)
     plt.show()
