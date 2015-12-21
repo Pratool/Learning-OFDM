@@ -201,47 +201,48 @@ def sync_long_sig(data_z, time):
 
 
 def read_bytes(rx):
-    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*100
+    orig_array = [1, 1, 0, 1, 1, 1, 1, 0, 0, 1, 0, 0, 1, 0, 0, 0]*1000
     bytes_array = []
     wrong = []
     count = 0
-    # for i in range(((len(rx)/BIT_LENGTH)+1)/16):
-    #     count += 1
-    #     # print count
-    #     if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
-    #         # print "here"
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(0)
-    #             else:
-    #                 bytes_array.append(1)
-    #     elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(1)
-    #             else:
-    #                 bytes_array.append(0)
-    #     else:
-    #         for k in range(16*i, 16*i+16):
-    #             if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
-    #                 bytes_array.append(0)
-    #             else:
-    #                 bytes_array.append(1)
-
-    # print bytes_array
-    # print len(bytes_array)
-    # print len(orig_array)
-
-    for i in range((len(rx)/BIT_LENGTH)+1):
-        if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
-            # if (25+50*i )
-            bytes_array.append(1)
+    for i in range(((len(rx)/BIT_LENGTH)+1)/16):
+        count += 1
+        # print count
+        if (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] >0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] > 0):
+            # print "here"
+            for k in range(16*i, 16*i+16):
+                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+                    bytes_array.append(0)
+                else:
+                    bytes_array.append(1)
+        elif (rx[BIT_LENGTH/2 + BIT_LENGTH*16*i] < 0 and rx[BIT_LENGTH/2 + BIT_LENGTH*16*i + BIT_LENGTH] < 0):
+            for k in range(16*i, 16*i+16):
+                if (rx[BIT_LENGTH/2 + BIT_LENGTH*k] < 0):
+                    bytes_array.append(1)
+                else:
+                    bytes_array.append(0)
         else:
-            bytes_array.append(0)
+            for k in range(16*i, 16*i+16):
+                if (rx[BIT_LENGTH/2+BIT_LENGTH*k] < 0):
+                    bytes_array.append(0)
+                else:
+                    bytes_array.append(1)
+
+    print bytes_array
+    print len(bytes_array)
+    print len(orig_array)
+
+    # for i in range((len(rx)/BIT_LENGTH)+1):
+    #     if (rx[BIT_LENGTH/2+BIT_LENGTH*i] > 0):
+    #         # if (25+50*i )
+    #         bytes_array.append(1)
+    #     else:
+    #         bytes_array.append(0)
 
     for j in range(len(bytes_array)):
         if (orig_array[j] != bytes_array[j]):
             wrong.append(j)
+    print wrong
     print len(wrong)
     # print bytes_array
 
@@ -259,7 +260,7 @@ if __name__ == '__main__':
     ext_array = 2*ext_array-1
     ext_array = 0.9*ext_array
 
-    print read_bytes(-synced_rx.imag)
+    print read_bytes(-synced_rx.real)
     # find_phase_flips(np.ediff1d(np.angle(synced_rx)))
     # read_bytes(rx_pre, synced_rx, t, orig_array)
     plts = 2000
